@@ -30,10 +30,12 @@ export default defineConfig({
     },
     {
       name: 'firefox',
+      testIgnore: ['**/api/**'],
       use: { ...devices['Desktop Firefox'] },
     },
     {
       name: 'webkit',
+      testIgnore: ['**/api/**'],
       use: { ...devices['Desktop Safari'] },
     },
   ],

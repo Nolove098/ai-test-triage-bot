@@ -1,0 +1,16 @@
+services:
+  playwright-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ipc: host
+    environment:
+      BASE_URL: ${BASE_URL:-https://automationexercise.com}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      ALLURE_REPORT_URL: ${ALLURE_REPORT_URL:-}
+      GITHUB_RUN_URL: ${GITHUB_RUN_URL:-}
+    volumes:
+      - ./allure-results:/app/allure-results
+      - ./test-results:/app/test-results
+    command: ["sh", "-c", "npm test; EXIT_CODE=$?; npm run triage; exit $EXIT_CODE"]

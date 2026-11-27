@@ -1,0 +1,113 @@
+name: Playwright Hybrid Tests & AI Triage CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Test suite to execute'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - api
+          - ui
+          - hybrid
+          - demo-fail
+
+permissions:
+  contents: write
+
+jobs:
+  e2e-and-triage:
+    name: Run Tests, Deploy Allure & AI Triage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck TypeScript
+        run: npm run typecheck
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright test suite (${{ inputs.suite || 'all' }})
+        id: test-run
+        continue-on-error: true
+        env:
+          BASE_URL: https://automationexercise.com
+        run: |
+          SUITE="${{ inputs.suite || 'all' }}"
+          case "$SUITE" in
+            api)
+              npm run test:api
+              ;;
+            ui)
+              npm run test:ui
+              ;;
+            hybrid)
+              npm run test:hybrid
+              ;;
+            demo-fail)
+              npm run test:demo-fail
+              ;;
+            *)
+              npm test
+              ;;
+          esac
+
+      - name: Fetch Allure history from gh-pages
+        if: always()
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-history
+
+      - name: Preserve Allure history and generate report
+        if: always()
+        run: |
+          mkdir -p allure-results
+          if [ -d "gh-pages-history/history" ]; then
+            cp -r gh-pages-history/history allure-results/history
+          fi
+          npx allure generate allure-results --clean -o allure-report
+
+      - name: Deploy Allure Report to GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./allure-report
+          publish_branch: gh-pages
+          keep_files: false
+
+      - name: Run AI Failure Triage & Discord Notifier
+        if: always()
+        env:
+          BASE_URL: https://automationexercise.com
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ALLURE_REPORT_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+        run: npm run triage
+
+      - name: Fail workflow if Playwright tests failed
+        if: steps.test-run.outcome == 'failure'
+        run: exit 1

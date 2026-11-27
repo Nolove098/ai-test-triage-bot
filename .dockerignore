@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.env
+test-results
+playwright-report
+allure-results
+allure-report
+blob-report
+project_plan_ai_agent_prompts.md
