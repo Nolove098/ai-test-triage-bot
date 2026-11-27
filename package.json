@@ -1,0 +1,41 @@
+{
+  "name": "ai-test-triage-bot",
+  "version": "1.0.0",
+  "description": "Production-grade Hybrid UI+API Playwright Test Automation Framework with AI-Powered Failure Triage (Gemini API) and Real-time Discord Alerting",
+  "private": true,
+  "scripts": {
+    "test": "playwright test --grep-invert @demo-fail",
+    "test:api": "playwright test tests/api --project=chromium",
+    "test:ui": "playwright test tests/ui",
+    "test:hybrid": "playwright test tests/hybrid",
+    "test:demo-fail": "playwright test tests/demo --grep @demo-fail --project=chromium",
+    "triage": "tsx src/triage/runTriage.ts",
+    "report:allure": "allure generate allure-results --clean -o allure-report && allure open allure-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "playwright",
+    "typescript",
+    "ai-triage",
+    "gemini-api",
+    "discord-webhook",
+    "allure-report",
+    "test-automation",
+    "hybrid-testing"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@google/genai": "^1.0.0"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^9.0.0",
+    "@playwright/test": "^1.52.0",
+    "@types/node": "^22.0.0",
+    "ajv": "^8.17.1",
+    "allure-commandline": "^2.32.0",
+    "allure-playwright": "^3.2.0",
+    "dotenv": "^16.4.7",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}
