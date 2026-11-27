@@ -1,0 +1,16 @@
+{
+  "consoleErrors": [
+    "[JavaScript Error: \"Blocked loading mixed active content “http://fonts.googleapis.com/css?family=Roboto:400,300,400italic,500,700,100”\" {file: \"https://automationexercise.com/login\" line: 0}]",
+    "[JavaScript Error: \"Blocked loading mixed active content “http://fonts.googleapis.com/css?family=Open+Sans:400,800,300,600,700”\" {file: \"https://automationexercise.com/login\" line: 0}]",
+    "[JavaScript Error: \"Blocked loading mixed active content “http://fonts.googleapis.com/css?family=Abel”\" {file: \"https://automationexercise.com/login\" line: 0}]"
+  ],
+  "failedRequests": [
+    {
+      "url": "https://automationexercise.com/login",
+      "method": "POST",
+      "status": 503,
+      "responseBody": "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'></head><body><h2>This website is under heavy load (queue full)</h2><p>We're sorry, too many people are accessing this website at the same time. We're working on this problem. Please try again later.</p><script type=\"module\" src=\"https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092\" integrity=\"sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawap"
+    }
+  ],
+  "currentUrl": "https://automationexercise.com/login"
+}
