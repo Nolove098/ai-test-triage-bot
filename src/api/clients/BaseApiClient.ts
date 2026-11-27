@@ -36,20 +36,33 @@ export abstract class BaseApiClient {
     options: RequestOptions = {},
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
-    const startedAt = performance.now();
+    const maxAttempts = 3;
 
-    const response = await this.sendRequest(method, url, options);
-    const rawBody = await response.text();
-    const responseTimeMs = Math.round(performance.now() - startedAt);
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const startedAt = performance.now();
+      const response = await this.sendRequest(method, url, options);
+      const rawBody = await response.text();
+      const responseTimeMs = Math.round(performance.now() - startedAt);
 
-    const parsedBody = this.parseJsonSafely<T>(rawBody, method, url, response.status());
+      if (
+        response.status() === 503 &&
+        rawBody.includes('under heavy load') &&
+        attempt < maxAttempts
+      ) {
+        continue;
+      }
 
-    return {
-      status: response.status(),
-      responseTimeMs,
-      rawBody,
-      body: parsedBody,
-    };
+      const parsedBody = this.parseJsonSafely<T>(rawBody, method, url, response.status());
+
+      return {
+        status: response.status(),
+        responseTimeMs,
+        rawBody,
+        body: parsedBody,
+      };
+    }
+
+    throw new Error(`Exceeded max attempts for ${method} ${url}`);
   }
 
   private async sendRequest(
