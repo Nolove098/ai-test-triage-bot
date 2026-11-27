@@ -1,0 +1,26 @@
+[
+  {
+    "keyword": "Blue Top",
+    "expectedProduct": "Blue Top",
+    "minResults": 1,
+    "expectEmpty": false
+  },
+  {
+    "keyword": "Jeans",
+    "expectedProduct": "Jeans",
+    "minResults": 3,
+    "expectEmpty": false
+  },
+  {
+    "keyword": "Dress",
+    "expectedProduct": "Dress",
+    "minResults": 3,
+    "expectEmpty": false
+  },
+  {
+    "keyword": "NonExistentProductXYZ999",
+    "expectedProduct": "",
+    "minResults": 0,
+    "expectEmpty": true
+  }
+]
