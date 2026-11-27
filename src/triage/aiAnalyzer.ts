@@ -9,7 +9,19 @@ import {
   type TriagedFailure,
 } from './types';
 
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const DEFAULT_GEMINI_MODELS: readonly string[] = [
+  'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite',
+  'gemini-3.8-flash',
+];
+
+function getModelCandidates(): readonly string[] {
+  const customModel = process.env.GEMINI_MODEL?.trim();
+  if (!customModel) {
+    return DEFAULT_GEMINI_MODELS;
+  }
+  return [customModel, ...DEFAULT_GEMINI_MODELS.filter((m) => m !== customModel)];
+}
 
 const VALID_CATEGORIES: readonly FailureCategory[] = [
   'UI_LOCATOR_CHANGED',
@@ -179,32 +191,47 @@ export async function analyzeFailure(failure: FailureContext): Promise<AIAnalysi
     return buildFallbackAnalysis(failure, 'Fallback: chưa cấu hình GEMINI_API_KEY');
   }
 
-  try {
-    const ai = new GoogleGenAI({ apiKey: env.geminiApiKey });
-    const response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: buildPrompt(failure),
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: TRIAGE_RESPONSE_SCHEMA,
-        temperature: 0.2,
-      },
-    });
+  const ai = new GoogleGenAI({
+    apiKey: env.geminiApiKey,
+    httpOptions: {
+      timeout: 20_000,
+      retryOptions: { attempts: 1 },
+    },
+  });
 
-    const text = response.text?.trim() ?? '';
-    if (!text) {
-      return buildFallbackAnalysis(failure, 'Fallback: Gemini trả về phản hồi rỗng');
+  const errors: string[] = [];
+  for (const model of getModelCandidates()) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: buildPrompt(failure),
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: TRIAGE_RESPONSE_SCHEMA,
+          temperature: 0.2,
+          abortSignal: AbortSignal.timeout(20_000),
+        },
+      });
+
+      const text = response.text?.trim() ?? '';
+      if (!text) {
+        errors.push(`${model}: empty response`);
+        continue;
+      }
+
+      const parsed: unknown = JSON.parse(text);
+      console.log(`[AI Triage] Analyzed "${failure.testTitle}" with ${model}.`);
+      return normalizeAnalysis(parsed, failure);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      errors.push(`${model}: ${message.slice(0, 140)}`);
     }
-
-    const parsed: unknown = JSON.parse(text);
-    return normalizeAnalysis(parsed, failure);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(
-      `[AI Triage] Gemini API error for "${failure.testTitle}": ${message}. Falling back to heuristic triage.`,
-    );
-    return buildFallbackAnalysis(failure, 'Fallback: gọi Gemini API thất bại');
   }
+
+  console.warn(
+    `[AI Triage] All Gemini model attempts failed for "${failure.testTitle}": ${errors.join(' | ')}. Falling back to heuristic triage.`,
+  );
+  return buildFallbackAnalysis(failure, 'Fallback: gọi Gemini API thất bại');
 }
 
 /**
